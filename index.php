@@ -1,6 +1,6 @@
 <?php
 header("Content-Type: text/html;charset=utf-8");
-define("TOKEN", "dongshao");   //这个token是自己设置的
+define("TOKEN", "coyqiuhaowechat1234");   //这个token是自己设置的
 $wechatObj = new wechatCallbackapiTest();
 //$wechatObj->valid();   //验证TOKEN,验证完之后就可以关闭,说明网站的url已经和公众号绑定
 //微信用户信息
