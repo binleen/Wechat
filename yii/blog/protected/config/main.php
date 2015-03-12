@@ -7,7 +7,7 @@
 // CWebApplication properties can be configured here.
 return array(
 	'basePath'=>dirname(__FILE__).DIRECTORY_SEPARATOR.'..',
-	'name'=>'Yii Blog Demo',
+	'name'=>'WeChat VIP Bind Demo',
 
 	// preloading 'log' component
 	'preload'=>array('log'),
@@ -48,7 +48,7 @@ return array(
             'connectionString' => 'mysql:host=localhost;dbname=blog',
 			'emulatePrepare' => true,
 			'username' => 'root',
-			'password' => '123456',
+			'password' => 'root',
 			'charset' => 'utf8',
 			'tablePrefix' => 'tbl_',
 		),
@@ -62,14 +62,15 @@ return array(
 			'rules'=>array(
 				'post/<id:\d+>/<title:.*?>'=>'post/view',
 				'posts/<tag:.*?>'=>'post/index',
-
+                'gii'=>'gii',
+                '<controller:\w+>/<action:\w+>'=>'<controller>/<action>',
                 // REST patterns
-               /* array('api/list', 'pattern'=>'<model:\w+>', 'verb'=>'GET'),
+                array('api/list', 'pattern'=>'<model:\w+>', 'verb'=>'GET'),
                 array('api/view', 'pattern'=>'<model:\w+>/<id:\d+>', 'verb'=>'GET'),
                 array('api/update', 'pattern'=>'<model:\w+>/<id:\d+>', 'verb'=>'PUT'),
                 array('api/delete', 'pattern'=>'<model:\w+>/<id:\d+>', 'verb'=>'DELETE'),
-                array('api/create', 'pattern'=>'<model:\w+>', 'verb'=>'POST'),*/
-                '<controller:\w+>/<action:\w+>'=>'<controller>/<action>',
+                array('api/create', 'pattern'=>'<model:\w+>', 'verb'=>'POST'),
+
 			),
 
 		),

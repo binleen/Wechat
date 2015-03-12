@@ -1,143 +1,176 @@
 <?php
-header('Content-Type: text/html;charset=utf8');
-class ClientController extends Controller{
-	public function actionIndex(){
-		$this->render('index');
+
+class ClientController extends Controller
+{
+	/**
+	 * @var string the default layout for the views. Defaults to '//layouts/column2', meaning
+	 * using two-column layout. See 'protected/views/layouts/column2.php'.
+	 */
+	public $layout='//layouts/column2';
+
+	/**
+	 * @return array action filters
+	 */
+	public function filters()
+	{
+		return array(
+			'accessControl', // perform access control for CRUD operations
+		);
 	}
-    public function actions() {
-        return array(
-            // captcha action renders the CAPTCHA image displayed on the contact page
-            'captcha'=>array(
-                'class'=>'CCaptchaAction',
-                'maxLength'=>6,
-                'minLength'=>'6',
-            ),
-          );
-    }
 
-    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>接收参数并验证开始<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    public function actionCheckMobile(){
-        $client = new Client();
-        $openid = $_POST['openid'];
-        $openid = $this->arr2str($openid);
-        $mobile = $_POST['mobile'];
-        if(!empty($_POST)){
-            if(preg_match("/^13[0-9]{1}[0-9]{8}$|15[0189]{1}[0-9]{8}$|18[0-9]{9}$/",$mobile)){
-                $criteria=new CDbCriteria;
-                $criteria->select='openid,mobile';
-                $criteria->addcondition(array('openid=:openId','mobile=:Mobile'),'or');
-                $criteria->params=array(':openId'=>$openid,':Mobile'=>$mobile); //复制给  select mobile,openid from tbl_client where openid=openid or mobile=mobile
-                $weChatUser=Client::model()->find($criteria);
-                    if(isset($weChatUser['mobile'])){
-                        $client->updateAll(array('mobile'=>$mobile),'openid=:openId',array(':openId'=>$openid));
-                    }else{
-                        $client->mobile = $mobile;
-                        $client->openid = $openid;
-                        $client->time = time();
-                        $client->save();
-                    }
-                $content = "您的手机号码为：".$mobile.",确认请回复【1】，如果有误，请重新点击【会员专区】->【手机绑定】";
-            }else{
-                $content = "对不起，您输入的手机号码格式不正确。如需绑定请重新点击【会员专区】->【手机绑定】";
-            }
-            echo $content;
-        }
-    }
-    //>>>>>>>>>>>>>>>>>>>>>>>>>>>验证用户是否已经存在开始<<<<<<<<<<<<<<<<<<<<<<<<<
-        public function actionBind(){
-            if(!empty($_POST)){
-                    $openid = $_POST['openid'];
-                    $criteria=new CDbCriteria;
-                    $criteria->select='openid,flag';   //select code from tbl_client
-                    $criteria->addCondition(array('openid=:openId','flag=1'));
-                    $criteria->params=array(':openId'=>$openid[0]); //复制给  select openid,flag from tbl_client where openid=openid and flag=flag
-                    $weChatUser=Client::model()->find($criteria); // $params is not needed
-                    if($weChatUser) {
-                        $result = '您已经是会员了!!!';
-                    }else{
-                        $result = '尊敬的用户，您好！欢迎加入【昊祥科技有限公司】会员俱乐部，请回复您的手机号码，完成身份绑定。';
-                    }
-                    echo $result;
-            }
-        }
-    //>>>>>>>>>>>>>>>>>>>>>>>>>>>验证用户是否已经存在结束<<<<<<<<<<<<<<<<<<<<<<<<<
+	/**
+	 * Specifies the access control rules.
+	 * This method is used by the 'accessControl' filter.
+	 * @return array access control rules
+	 */
+	public function accessRules()
+	{
+		return array(
+			array('allow',  // allow all users to perform 'index' and 'view' actions
+				'actions'=>array('index','view','admin'),
+				'users'=>array('*'),
+			),
+			array('allow', // allow authenticated user to perform 'create' and 'update' actions
+				'actions'=>array('create','update'),
+				'users'=>array('@'),
+			),
+			array('allow', // allow admin user to perform 'admin' and 'delete' actions
+				'actions'=>array('delete'),
+				'users'=>array('admin'),
+			),
+			array('deny',  // deny all users
+				'users'=>array('*'),
+			),
+		);
+	}
 
+	/**
+	 * Displays a particular model.
+	 * @param integer $id the ID of the model to be displayed
+	 */
+	public function actionView($id)
+	{
+		$this->render('view',array(
+			'model'=>$this->loadModel($id),
+		));
+	}
 
+	/**
+	 * Creates a new model.
+	 * If creation is successful, the browser will be redirected to the 'view' page.
+	 */
+	public function actionCreate()
+	{
+		$model=new Client;
 
-    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>接收参数并验证开始<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    public function actionVerifyCode() {
-        if(!empty($_POST)){
-            $code = $_POST['code'];   //接收用户请求参数->验证码
-            $openid = $_POST['openid'];    //接收用户请求参数->id
-            $criteria=new CDbCriteria;      //实例化
-            $criteria->select='code,openid,time';   //select code,openid from tbl_client
-            $criteria->addCondition(array('openid=:openId','code=:code','time>:Time'));   //where openid=id and code=验证码
-            $criteria->params=array(':openId'=>$openid[0], 'code'=>$code,'Time'=>time()); //复制给
-            $weChatUser=Client::model()->find($criteria);
-            if(isset($weChatUser)) {
-                $client =  new Client();
-                $client->updateAll(array('flag'=>1),'openid=:openId',array(':openId'=>$openid[0]));
-                $result = '恭喜您已绑定成功!';
-            }else{
-                $result = '验证已超时,请重新输入验证码，或者您输入不正确,请重新点击【会员专区】->【手机绑定】';
-            }
-            echo $result;
-        }
-    }
-    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>接收参数并验证结束<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+		// Uncomment the following line if AJAX validation is needed
+		// $this->performAjaxValidation($model);
 
-    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>验证码开始<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    //>>>>>>>>>>>>>>>>>>>>生成并发送验证码开始<<<<<<<<<<<<<<<<<<<<<<<<<
-    public function actionSendCode(){
-        $authnum = '';
-        $strarr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
-        $openid = $_POST['openid'];
-        $code = $_POST['code'];
-        $openid = $this->arr2str($openid);
-        $len = strlen($strarr); //得到字串的长度;
-        //循环随机抽取六位前面定义的字母和数字;
-        for($i=1;$i<=6;$i++){           //每次随机抽取一位数字;从第一个字到该字串最大长度,
-            $num=rand(0,$len-1);            //减1是因为截取字符是从0开始起算;这样34字符任意都有可能排在其中;
-            $authnum .= $strarr[$num];    //将通过数字得来的字符连起来一共是六位;
-        }
-        if($code==1){
-                $criteria=new CDbCriteria;      //实例化
-                $criteria->select='openid';   //select code,openid from tbl_client
-                $criteria->addCondition(array('openid=:openId'));   //where openid=id and code=验证码
-                $criteria->params=array(':openId'=>$openid); //复制给
-                $weChatUser=Client::model()->find($criteria);
-                if($weChatUser){
-                    if($authnum){
-                        $client = new Client();
-                        $client->updateAll(array('code'=>$authnum,'time'=>time()+300),'openid=:openId',array(':openId'=>$openid));
-                        $content = '尊敬的用户，您已确认需绑定的手机号码，我们将发送验证码【'.$authnum.'】至该手机号码，请您于5分钟内微信回复您收到的验证码，以确认绑定。';
-                }
-            }else{
-                    $content = '请您重新点击【会员专区】->【手机绑定】';
-                }
-        }
-        echo $content;
-    }
-    //>>>>>>>>>>>>>>>>>>>>生成并发送验证码结束<<<<<<<<<<<<<<<<<<<<<<<<<
+		if(isset($_POST['Client']))
+		{
+			$model->attributes=$_POST['Client'];
+			if($model->save())
+				$this->redirect(array('view','id'=>$model->id));
+		}
 
-    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>验证码结束<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    /**
-     * 字符串到数组
-     */
-    function str2arr($str,$delimiter=","){
-        return explode($delimiter,$str);
-    }
-    /**
-     * 数组到字符串
-     */
-    function arr2str($arr,$delimiter=","){
-        return implode($delimiter,$arr);
-    }
+		$this->render('create',array(
+			'model'=>$model,
+		));
+	}
 
+	/**
+	 * Updates a particular model.
+	 * If update is successful, the browser will be redirected to the 'view' page.
+	 * @param integer $id the ID of the model to be updated
+	 */
+	public function actionUpdate($id)
+	{
+		$model=$this->loadModel($id);
 
+		// Uncomment the following line if AJAX validation is needed
+		// $this->performAjaxValidation($model);
 
+		if(isset($_POST['Client']))
+		{
+			$model->attributes=$_POST['Client'];
+			if($model->save())
+				$this->redirect(array('view','id'=>$model->id));
+		}
 
+		$this->render('update',array(
+			'model'=>$model,
+		));
+	}
 
+	/**
+	 * Deletes a particular model.
+	 * If deletion is successful, the browser will be redirected to the 'admin' page.
+	 * @param integer $id the ID of the model to be deleted
+	 */
+	public function actionDelete($id)
+	{
+		if(Yii::app()->request->isPostRequest)
+		{
+			// we only allow deletion via POST request
+			$this->loadModel($id)->delete();
 
+			// if AJAX request (triggered by deletion via admin grid view), we should not redirect the browser
+			if(!isset($_GET['ajax']))
+				$this->redirect(isset($_POST['returnUrl']) ? $_POST['returnUrl'] : array('admin'));
+		}
+		else
+			throw new CHttpException(400,'Invalid request. Please do not repeat this request again.');
+	}
 
+	/**
+	 * Lists all models.
+	 */
+	public function actionIndex()
+	{
+		$dataProvider=new CActiveDataProvider('Client');
+		$this->render('index',array(
+			'dataProvider'=>$dataProvider,
+		));
+	}
+
+	/**
+	 * Manages all models.
+	 */
+	public function actionAdmin()
+	{
+		$model=new Client('search');
+		$model->unsetAttributes();  // clear any default values
+		if(isset($_GET['Client']))
+			$model->attributes=$_GET['Client'];
+
+		$this->render('admin',array(
+			'model'=>$model,
+		));
+	}
+
+	/**
+	 * Returns the data model based on the primary key given in the GET variable.
+	 * If the data model is not found, an HTTP exception will be raised.
+	 * @param integer the ID of the model to be loaded
+	 */
+	public function loadModel($id)
+	{
+		$model=Client::model()->findByPk((int)$id);
+		if($model===null)
+			throw new CHttpException(404,'The requested page does not exist.');
+		return $model;
+	}
+
+	/**
+	 * Performs the AJAX validation.
+	 * @param CModel the model to be validated
+	 */
+	protected function performAjaxValidation($model)
+	{
+		if(isset($_POST['ajax']) && $_POST['ajax']==='client-form')
+		{
+			echo CActiveForm::validate($model);
+			Yii::app()->end();
+		}
+	}
 }
